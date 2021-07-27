@@ -3,6 +3,9 @@ kind: OpenshiftExample
 metadata:
   name: openshift-example
   namespace: example-project1
+  annotations:
+    argocd.argoproj.io/compare-options: IgnoreExtraneous
+    argocd.argoproj.io/sync-options: Prune=false
 spec:
   java:
     enabled: true

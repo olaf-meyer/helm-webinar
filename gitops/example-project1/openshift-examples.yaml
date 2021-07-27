@@ -1,0 +1,14 @@
+apiVersion: webinar.consol.de/v1alpha1
+kind: OpenshiftExample
+metadata:
+  name: openshift-example
+  namespace: example-project1
+spec:
+  java:
+    enabled: true
+    name: java-example
+  nodejs:
+    enabled: true
+    name: nodejs-example
+  rails:
+    enabled: false

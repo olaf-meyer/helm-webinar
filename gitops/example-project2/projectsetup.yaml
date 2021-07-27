@@ -1,0 +1,32 @@
+apiVersion: webinar.consol.de/v1alpha1
+kind: ProjectSetup
+metadata:
+  name: example-project2
+spec:
+  limit:
+    default:
+      cpu: 200m
+      memory: 512Mi
+    defaultRequest:
+      cpu: 100m
+      memory: 256Mi
+    max:
+      cpu: "5"
+      memory: 4Gi
+    maxLimitRequestRatio:
+      cpu: "10"
+      memory: "5"
+    min:
+      cpu: 50m
+      memory: 128Mi
+  quota:
+    cpu: "2"
+    memory: 2Gi
+    storage: 2Gi
+  rbac:
+    user:
+      admin:
+      - olaf
+      - superduperadmin
+  
+  

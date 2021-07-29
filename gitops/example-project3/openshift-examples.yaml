@@ -1,8 +1,8 @@
 apiVersion: webinar.consol.de/v1alpha1
 kind: OpenshiftExample
 metadata:
-  name: openshift-example
-  namespace: example-project2
+  name: openshift-example3
+  namespace: example-project3
 spec:
   java:
     enabled: false

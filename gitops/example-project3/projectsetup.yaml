@@ -1,7 +1,7 @@
 apiVersion: webinar.consol.de/v1alpha1
 kind: ProjectSetup
 metadata:
-  name: example-project2
+  name: example-project3
 spec:
   rbac:
     user:

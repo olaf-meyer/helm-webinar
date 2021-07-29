@@ -5,7 +5,7 @@ metadata:
   namespace: example-project1
 spec:
   java:
-    enabled: true
+    enabled: false
     name: java-example
   nodejs:
     enabled: true

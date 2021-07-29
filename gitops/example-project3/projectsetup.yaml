@@ -1,0 +1,11 @@
+apiVersion: webinar.consol.de/v1alpha1
+kind: ProjectSetup
+metadata:
+  name: example-project2
+spec:
+  rbac:
+    user:
+      admin:
+      - olaf
+  
+  

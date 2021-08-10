@@ -1,0 +1,6 @@
+# Use the 'create api' subcommand to add watches to this file.
+- group: webinar.consol.de
+  version: v1alpha1
+  kind: ProjectSetup
+  chart: helm-charts/project-setup
+#+kubebuilder:scaffold:watch

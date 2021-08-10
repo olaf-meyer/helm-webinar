@@ -1,0 +1,9 @@
+{{ if .Values.java.enabled }}
+apiVersion: image.openshift.io/v1 
+kind: ImageStream
+metadata:
+  labels:
+    application: {{ .Values.java.name}}
+    app.kubernetes.io/part-of: {{ .Values.java.name }}
+  name: {{ .Values.java.name}}
+{{ end }}

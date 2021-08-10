@@ -1,0 +1,14 @@
+apiVersion: quota.openshift.io/v1
+kind: ClusterResourceQuota
+metadata:
+  name: {{ include "project-setup.quotaname" . }}
+spec:
+  quota:
+    hard:
+      requests.cpu: {{ .Values.quota.cpu }}
+      requests.memory: {{ .Values.quota.memory }}
+      requests.storage: {{ .Values.quota.storage }}
+  selector:
+    annotations:
+      myquota: {{ include "project-setup.quotaname" . }}
+    labels: null

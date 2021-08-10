@@ -1,0 +1,46 @@
+{{ if .Values.nodejs.enabled }}
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  annotations:
+    description: Defines how to build the application
+    template.alpha.openshift.io/wait-for-ready: "true"
+  name: {{ .Values.nodejs.name }}
+  labels:
+    app.kubernetes.io/part-of: {{ .Values.nodejs.name }}
+    application: {{ .Values.nodejs.name}}
+spec:
+  output:
+    to:
+      kind: ImageStreamTag
+      name: {{ .Values.nodejs.name }}:latest
+  postCommit:
+    script: npm test
+  source:
+    contextDir: {{ .Values.nodejs.git.context}}
+    git:
+      ref: {{ .Values.nodejs.git.source_repository_ref}}
+      uri: {{ .Values.nodejs.git.source_repository_url}}
+    type: Git
+  strategy:
+    sourceStrategy:
+      env:
+      - name: NPM_MIRROR
+        value: {{ .Values.nodejs.npm_mirror}}
+      from:
+        kind: ImageStreamTag
+        name: nodejs:{{ .Values.nodejs.nodejs_version }}
+        namespace: {{ .Values.nodejs.namespace }}
+    type: Source
+  triggers:
+  # - type: ImageChange
+  - type: ConfigChange
+  {{ if .Values.rails.github_webhook_secret }}
+  - github:
+      secret:  {{ .Values.nodejs.github_webhook_secret }}
+    type: GitHub
+  - generic:
+      secret:  {{ .Values.nodejs.github_webhook_secret }}
+    type: Generic
+  {{ end }}
+{{ end }}

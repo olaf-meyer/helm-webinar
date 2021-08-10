@@ -1,0 +1,30 @@
+# Default values for project-setup.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+quota:
+  # name: "quota"
+  cpu: 1
+  memory: 1Gi
+  storage: 1Gi
+limit:
+  default:
+    cpu: 200m
+    memory: 512Mi
+  defaultRequest:
+    cpu: 100m
+    memory: 256Mi
+  maxLimitRequestRatio:
+    cpu: "10"
+    memory: "5"
+  min:
+    cpu: "50m"
+    memory: "128Mi"
+  max:
+    cpu: "5"
+    memory: "4Gi"
+rbac:
+  user:
+    admin:
+      - olaf
+      - superduperadmin

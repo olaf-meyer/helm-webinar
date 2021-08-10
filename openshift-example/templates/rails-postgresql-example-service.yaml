@@ -1,0 +1,19 @@
+{{ if .Values.rails.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    description: Exposes and load balances the application pods
+    service.alpha.openshift.io/dependencies: '[{"name": "{{ include "rails.databaseServiceName" . }}", "kind": "Service"}]'
+  name: {{ .Values.rails.name }}
+  labels:
+    app.kubernetes.io/part-of: {{ .Values.rails.name }}
+    application: {{ .Values.rails.name}}
+spec:
+  ports:
+  - name: web
+    port: 8080
+    targetPort: 8080
+  selector:
+    name: {{ .Values.rails.name }}
+{{ end }}

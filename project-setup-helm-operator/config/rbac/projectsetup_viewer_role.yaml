@@ -1,0 +1,20 @@
+# permissions for end users to view projectsetups.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: projectsetup-viewer-role
+rules:
+- apiGroups:
+  - webinar.consol.de
+  resources:
+  - projectsetups
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - webinar.consol.de
+  resources:
+  - projectsetups/status
+  verbs:
+  - get

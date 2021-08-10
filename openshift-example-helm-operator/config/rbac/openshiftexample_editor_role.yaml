@@ -1,0 +1,24 @@
+# permissions for end users to edit openshiftexamples.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: openshiftexample-editor-role
+rules:
+- apiGroups:
+  - webinar.consol.de
+  resources:
+  - openshiftexamples
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - webinar.consol.de
+  resources:
+  - openshiftexamples/status
+  verbs:
+  - get

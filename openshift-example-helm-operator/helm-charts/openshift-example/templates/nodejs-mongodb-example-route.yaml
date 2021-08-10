@@ -1,0 +1,13 @@
+{{ if .Values.nodejs.enabled }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ .Values.nodejs.name }}
+  labels:
+    app.kubernetes.io/part-of: {{ .Values.nodejs.name }}
+    application: {{ .Values.nodejs.name}}
+spec:
+  to:
+    kind: Service
+    name: {{ .Values.nodejs.name }}
+{{ end }}

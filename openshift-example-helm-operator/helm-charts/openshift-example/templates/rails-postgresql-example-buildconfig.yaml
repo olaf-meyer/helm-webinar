@@ -1,0 +1,43 @@
+{{ if .Values.rails.enabled }}
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  annotations:
+    description: Defines how to build the application
+    template.alpha.openshift.io/wait-for-ready: "true"
+  name: {{ .Values.rails.name }}
+  labels:
+    app.kubernetes.io/part-of: {{ .Values.rails.name }}
+    application: {{ .Values.rails.name}}
+spec:
+  output:
+    to:
+      kind: ImageStreamTag
+      name: {{ .Values.rails.name }}:latest
+  postCommit:
+    script: bundle exec rake test
+  source:
+    contextDir: {{ .Values.rails.git.context }}
+    git:
+      ref: {{ .Values.rails.git.source_repository_ref }}
+      uri: {{ .Values.rails.git.source_repository_url }}
+    type: Git
+  strategy:
+    sourceStrategy:
+      env:
+      - name: RUBYGEM_MIRROR
+        value: {{ .Values.rails.git.rubygem_mirror }}
+      from:
+        kind: ImageStreamTag
+        name: ruby:2.6-ubi8
+        namespace: {{ .Values.rails.source_namespace }}
+    type: Source
+  triggers:
+  # - type: ImageChange
+  - type: ConfigChange
+  {{ if .Values.rails.github_webhook_secret }}  
+  - github:
+      secret:  {{ .Values.rails.github_webhook_secret }}
+    type: GitHub
+  {{ end }}      
+{{ end }}

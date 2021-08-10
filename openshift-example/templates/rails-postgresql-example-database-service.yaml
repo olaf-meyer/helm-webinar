@@ -1,0 +1,18 @@
+{{ if .Values.rails.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    description: Exposes the database server
+  name: {{ include "rails.databaseServiceName" . }}
+  labels: 
+    app.kubernetes.io/part-of: {{ .Values.rails.name }}
+    application: {{ .Values.rails.name}}
+spec:
+  ports:
+  - name: postgresql
+    port: 5432
+    targetPort: 5432
+  selector:
+    name: {{ include "rails.databaseServiceName" . }}
+{{ end }}

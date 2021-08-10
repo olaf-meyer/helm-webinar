@@ -1,0 +1,16 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: gitops-additional-permissions
+rules:
+- apiGroups:
+  - webinar.consol.de
+  resources:
+  - projectsetups
+  - openshiftexamples
+  verbs:
+  - create
+  - delete
+  - update
+  - patch
+  - list

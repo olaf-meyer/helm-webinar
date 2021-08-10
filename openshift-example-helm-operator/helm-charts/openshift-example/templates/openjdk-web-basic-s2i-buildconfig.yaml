@@ -1,0 +1,38 @@
+{{ if .Values.java.enabled }}
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  labels:
+    application: {{ .Values.java.name}}
+    app.kubernetes.io/part-of: {{ .Values.java.name }}
+  name: {{ .Values.java.name}}
+spec:
+  output:
+    to:
+      kind: ImageStreamTag
+      name: {{ .Values.java.name}}:latest
+  source:
+    contextDir: {{ .Values.java.git.context}}
+    git:
+      ref: {{ .Values.java.git.source_repository_ref}}
+      uri: {{ .Values.java.git.source_repository_url}}
+    type: Git
+  strategy:
+    sourceStrategy:
+      forcePull: true
+      from:
+        kind: ImageStreamTag
+        name: java:{{ .Values.java.java_image_stream_tag}}
+        namespace: {{ .Values.java.image_stream_namespace}}
+    type: Source
+  triggers:
+  {{ if .Values.rails.github_webhook_secret }}
+  - github:
+      secret:  {{ .Values.rails.github_webhook_secret }}
+    type: GitHub
+    - generic:
+      secret:  {{ .Values.rails.github_webhook_secret }}
+    type: Generic
+  {{ end }}    
+  - type: ConfigChange
+{{ end }}

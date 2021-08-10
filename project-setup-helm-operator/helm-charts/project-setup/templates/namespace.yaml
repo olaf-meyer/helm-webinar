@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  annotations:
+    myquota: {{ include "project-setup.quotaname" . }}
+  name: {{ include "project-setup.name" . }}
+  labels:
+    {{- include "project-setup.labels" . | nindent 4 }}
+spec: {}
+status: {}

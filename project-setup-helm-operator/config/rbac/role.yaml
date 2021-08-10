@@ -1,0 +1,74 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+##
+## Base operator rules
+##
+# We need to get namespaces so the operator can read namespaces to ensure they exist
+- apiGroups:
+  - ""
+  resources:
+  - namespaces
+  verbs:
+  - get
+# We need to manage Helm release secrets
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - "*"
+# We need to create events on CRs about things happening during reconciliation
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+
+##
+## Rules for webinar.consol.de/v1alpha1, Kind: ProjectSetup
+##
+- apiGroups:
+  - webinar.consol.de
+  resources:
+  - projectsetups
+  - projectsetups/status
+  - projectsetups/finalizers
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- verbs:
+  - "*"
+  apiGroups:
+  - ""
+  resources:
+  - "namespaces"
+- verbs:
+  - "*"
+  apiGroups:
+  - "quota.openshift.io"
+  resources:
+  - "clusterresourcequotas"
+  - "appliedclusterresourcequotas"
+- verbs:
+  - "*"
+  apiGroups:
+  - ""
+  resources:
+  - "limitranges"
+- verbs:
+  - "*"
+  apiGroups:
+  - "rbac.authorization.k8s.io"
+  resources:
+  - "rolebindings"
+
+#+kubebuilder:scaffold:rules

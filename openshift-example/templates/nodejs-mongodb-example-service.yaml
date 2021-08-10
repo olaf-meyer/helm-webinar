@@ -1,0 +1,19 @@
+{{ if .Values.nodejs.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    description: Exposes and load balances the application pods
+    service.alpha.openshift.io/dependencies: '[{"name": "{{ include "nodejs.databaseServiceName" . }}", "kind": "Service"}]'
+  name: {{ .Values.nodejs.name }}
+  labels:
+    app.kubernetes.io/part-of: {{ .Values.nodejs.name }}
+    application: {{ .Values.nodejs.name}}
+spec:
+  ports:
+  - name: web
+    port: 8080
+    targetPort: 8080
+  selector:
+    name: {{ .Values.nodejs.name }}
+{{ end }}

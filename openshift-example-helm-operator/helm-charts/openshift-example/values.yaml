@@ -1,0 +1,54 @@
+rails:
+  enabled: false
+  name: rails-postgresql-example
+  source_namespace: openshift
+  memory_limit: 512Mi
+  git:
+    source_repository_url: https://github.com/sclorg/rails-ex.git
+    # source_repository_ref: 
+    # context: 
+  # application_domain: 
+  # github_webhook_secret: 
+  # secret_key_base:  
+  application_user: openshift
+  application_password: secret
+  rails_env: production
+  database:
+    service_name: postgresql
+    # user: 
+    # password: 
+    name: root
+    postgresql_max_connections: "100"
+    postgresql_shared_buffers: 12MB
+    postgresql_memory_limit: 512Mi
+# rubygem_mirror: 
+java:
+  enabled: true
+  name: openjdk-app
+  java_image_stream_tag: latest
+  git:
+    source_repository_url: https://github.com/jboss-openshift/openshift-quickstarts
+    source_repository_ref: master
+    context: undertow-servlet
+    # github_webhook_secret:
+  image_stream_namespace: openshift
+nodejs:
+  enabled: true
+  name: nodejs-mongodb-example
+  namespace: openshift
+  nodejs_version: "12"
+  memory_limit: 512Mi
+  git:
+    source_repository_url: https://github.com/sclorg/nodejs-ex.git
+    # source_repository_ref: master
+    # context: 
+    # github_webhook_secret:
+  database:
+    service_name: mongodb
+    user:  user001
+    # password:
+    name: sampledb
+    # admin_password:
+    mongodb_memory_limit: 512Mi
+    mongodb_version: "3.6"
+  # npm_mirror:

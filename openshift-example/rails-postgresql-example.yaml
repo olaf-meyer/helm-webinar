@@ -1,0 +1,382 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+labels:
+  app: rails-postgresql-example
+  template: rails-postgresql-example
+message: |-
+  The following service(s) have been created in your project: {{ .Values.rails.name }}, {{ .Values.rails.database.service_name}}.
+
+  For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/rails-ex/blob/master/README.md.
+metadata:
+  annotations:
+    description: |-
+      An example Rails application with a PostgreSQL database. For more information about using this template, including OpenShift considerations, see https://github.com/sclorg/rails-ex/blob/master/README.md.
+
+      WARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.
+    iconClass: icon-ruby
+    openshift.io/display-name: Rails + PostgreSQL (Ephemeral)
+    openshift.io/documentation-url: https://github.com/sclorg/rails-ex
+    openshift.io/long-description: This template defines resources needed to develop a Rails application, including a build configuration, application deployment configuration, and database deployment configuration.  The database is stored in non-persistent storage, so this configuration should be used for experimental purposes only.
+    openshift.io/provider-display-name: Red Hat, Inc.
+    openshift.io/support-url: https://access.redhat.com
+    samples.operator.openshift.io/version: 4.7.19
+    tags: quickstart,ruby,rails
+    template.openshift.io/bindable: "false"
+  labels:
+    samples.operator.openshift.io/managed: "true"
+  name: rails-postgresql-example
+  namespace: openshift
+objects:
+- apiVersion: v1
+  kind: Secret
+  metadata:
+    name: {{ .Values.rails.name }}
+  stringData:
+    application_password: {{ .Values.rails.application_password }}
+    application_user: {{ .Values.rails.application_user }}
+    {{ if .Values.rails.database.password }}
+    database-user:  {{ .Values.rails.database.password | nindent 4 }}
+    {{ else }}
+    database-user: {{ randAlphaNum 8 | nindent 4 }}
+    {{ end }}
+    {{ if .Values.rails.database.user }}
+    database-user:  {{ .Values.rails.database.user | nindent 4 }}
+    {{ else }}
+    database-user: {{ randAlphaNum 8 | nindent 4 }}
+    {{ end }}
+    {{ if .Values.rails.secret_key_base }}
+    keybase:  {{ .Values.rails.secret_key_base | nindent 4 }}
+    {{ else }}
+    keybase: {{ randAlphaNum 20 | nindent 4 }}
+    {{ end }}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      description: Exposes and load balances the application pods
+      service.alpha.openshift.io/dependencies: '[{"name": "{{ .Values.rails.database.service_name}}", "kind": "Service"}]'
+    name: {{ .Values.rails.name }}
+  spec:
+    ports:
+    - name: web
+      port: 8080
+      targetPort: 8080
+    selector:
+      name: {{ .Values.rails.name }}
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: {{ .Values.rails.name }}
+  spec:
+    host: {{ .Values.rails.application_domain }}
+    to:
+      kind: Service
+      name: {{ .Values.rails.name }}
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    annotations:
+      description: Keeps track of changes in the application image
+    name: {{ .Values.rails.name }}
+- apiVersion: v1
+  kind: BuildConfig
+  metadata:
+    annotations:
+      description: Defines how to build the application
+      template.alpha.openshift.io/wait-for-ready: "true"
+    name: {{ .Values.rails.name }}
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: {{ .Values.rails.name }}:latest
+    postCommit:
+      script: bundle exec rake test
+    source:
+      contextDir: {{ .Values.rails.git.context }}
+      git:
+        ref: {{ .Values.rails.git.source_repository_ref }}
+        uri: {{ .Values.rails.git.source_repository_url }}
+      type: Git
+    strategy:
+      sourceStrategy:
+        env:
+        - name: RUBYGEM_MIRROR
+          value: {{ .Values.rails.git.rubygem_mirror }}
+        from:
+          kind: ImageStreamTag
+          name: ruby:2.6-ubi8
+          namespace: {{ .Values.rails.source_namespace }}
+      type: Source
+    triggers:
+    - type: ImageChange
+    - type: ConfigChange
+    - github:
+        secret: {{ .Values.rails.github_webhook_secret}}
+      type: GitHub
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+      description: Defines how to deploy the application server
+      template.alpha.openshift.io/wait-for-ready: "true"
+    name: {{ .Values.rails.name }}
+  spec:
+    replicas: 1
+    selector:
+      name: {{ .Values.rails.name }}
+    strategy:
+      recreateParams:
+        pre:
+          execNewPod:
+            command:
+            - ./migrate-database.sh
+            containerName: {{ .Values.rails.name }}
+          failurePolicy: Abort
+      type: Recreate
+    template:
+      metadata:
+        labels:
+          name: {{ .Values.rails.name }}
+        name: {{ .Values.rails.name }}
+      spec:
+        containers:
+        - env:
+          - name: DATABASE_SERVICE_NAME
+            value: {{ .Values.rails.database.service_name}}
+          - name: POSTGRESQL_USER
+            valueFrom:
+              secretKeyRef:
+                key: database-user
+                name: {{ .Values.rails.name }}
+          - name: POSTGRESQL_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: database-password
+                name: {{ .Values.rails.name }}
+          - name: POSTGRESQL_DATABASE
+            value: {{ .Values.rails.database.name}}
+          - name: SECRET_KEY_BASE
+            valueFrom:
+              secretKeyRef:
+                key: keybase
+                name: {{ .Values.rails.name }}
+          - name: POSTGRESQL_MAX_CONNECTIONS
+            value: "{{ .Values.rails.database.postgresql_max_connections}}"
+          - name: POSTGRESQL_SHARED_BUFFERS
+            value: {{ .Values.rails.database.postgresql_shared_buffers}}
+          - name: APPLICATION_DOMAIN
+            value: {{ .Values.rails.application_domain }}
+          - name: APPLICATION_USER
+            valueFrom:
+              secretKeyRef:
+                key: application_user
+                name: {{ .Values.rails.name }}
+          - name: APPLICATION_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: application_password
+                name: {{ .Values.rails.name }}
+          - name: RAILS_ENV
+            value: {{ .Values.rails.rails_env}}
+          image: ' '
+          livenessProbe:
+            httpGet:
+              path: /articles
+              port: 8080
+            initialDelaySeconds: 10
+            timeoutSeconds: 3
+          name: {{ .Values.rails.name }}
+          ports:
+          - containerPort: 8080
+          readinessProbe:
+            httpGet:
+              path: /articles
+              port: 8080
+            initialDelaySeconds: 5
+            timeoutSeconds: 3
+          resources:
+            limits:
+              memory: {{ .Values.rails.memory_limit }}
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - {{ .Values.rails.name }}
+        from:
+          kind: ImageStreamTag
+          name: {{ .Values.rails.name }}:latest
+      type: ImageChange
+    - type: ConfigChange
+- apiVersion: v1
+  kind: Service
+  metadata:
+    annotations:
+      description: Exposes the database server
+    name: {{ .Values.rails.database.service_name}}
+  spec:
+    ports:
+    - name: postgresql
+      port: 5432
+      targetPort: 5432
+    selector:
+      name: {{ .Values.rails.database.service_name}}
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    annotations:
+      description: Defines how to deploy the database
+      template.alpha.openshift.io/wait-for-ready: "true"
+    name: {{ .Values.rails.database.service_name}}
+  spec:
+    replicas: 1
+    selector:
+      name: {{ .Values.rails.database.service_name}}
+    strategy:
+      type: Recreate
+    template:
+      metadata:
+        labels:
+          name: {{ .Values.rails.database.service_name}}
+        name: {{ .Values.rails.database.service_name}}
+      spec:
+        containers:
+        - env:
+          - name: POSTGRESQL_USER
+            valueFrom:
+              secretKeyRef:
+                key: database-user
+                name: {{ .Values.rails.name }}
+          - name: POSTGRESQL_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                key: database-password
+                name: {{ .Values.rails.name }}
+          - name: POSTGRESQL_DATABASE
+            value: {{ .Values.rails.database.name}}
+          - name: POSTGRESQL_MAX_CONNECTIONS
+            value: {{ .Values.rails.database.postgresql_max_connections}}
+          - name: POSTGRESQL_SHARED_BUFFERS
+            value: {{ .Values.rails.database.postgresql_shared_buffers}}
+          image: ' '
+          livenessProbe:
+            exec:
+              command:
+              - /usr/libexec/check-container
+              - --live
+            initialDelaySeconds: 120
+            timeoutSeconds: 10
+          name: postgresql
+          ports:
+          - containerPort: 5432
+          readinessProbe:
+            exec:
+              command:
+              - /usr/libexec/check-container
+            initialDelaySeconds: 5
+            timeoutSeconds: 1
+          resources:
+            limits:
+              memory: {{ .Values.rails.database.postgresql_memory_limit}}
+          volumeMounts:
+          - mountPath: /var/lib/pgsql/data
+            name: data
+        volumes:
+        - emptyDir: {}
+          name: data
+    triggers:
+    - imageChangeParams:
+        automatic: true
+        containerNames:
+        - postgresql
+        from:
+          kind: ImageStreamTag
+          name: postgresql:12-el8
+          namespace: {{ .Values.rails.source_namespace }}
+      type: ImageChange
+    - type: ConfigChange
+parameters:
+- description: The name assigned to all of the frontend objects defined in this template.
+  displayName: Name
+  name: NAME
+  required: true
+  value: rails-postgresql-example
+- description: The OpenShift Namespace where the ImageStream resides.
+  displayName: Namespace
+  name: NAMESPACE
+  required: true
+  value: openshift
+- description: Maximum amount of memory the Rails container can use.
+  displayName: Memory Limit
+  name: MEMORY_LIMIT
+  required: true
+  value: 512Mi
+- description: Maximum amount of memory the PostgreSQL container can use.
+  displayName: Memory Limit (PostgreSQL)
+  name: MEMORY_POSTGRESQL_LIMIT
+  required: true
+  value: 512Mi
+- description: The URL of the repository with your application source code.
+  displayName: Git Repository URL
+  name: SOURCE_REPOSITORY_URL
+  required: true
+  value: https://github.com/sclorg/rails-ex.git
+- description: Set this to a branch name, tag or other ref of your repository if you are not using the default branch.
+  displayName: Git Reference
+  name: SOURCE_REPOSITORY_REF
+- description: Set this to the relative path to your project if it is not in the root of your repository.
+  displayName: Context Directory
+  name: CONTEXT_DIR
+- description: The exposed hostname that will route to the Rails service, if left blank a value will be defaulted.
+  displayName: Application Hostname
+  name: APPLICATION_DOMAIN
+- description: Github trigger secret.  A difficult to guess string encoded as part of the webhook URL.  Not encrypted.
+  displayName: GitHub Webhook Secret
+  from: '[a-zA-Z0-9]{40}'
+  generate: expression
+  name: GITHUB_WEBHOOK_SECRET
+- description: Your secret key for verifying the integrity of signed cookies.
+  displayName: Secret Key
+  from: '[a-z0-9]{127}'
+  generate: expression
+  name: SECRET_KEY_BASE
+- description: The application user that is used within the sample application to authorize access on pages.
+  displayName: Application Username
+  name: APPLICATION_USER
+  required: true
+  value: openshift
+- description: The application password that is used within the sample application to authorize access on pages.
+  displayName: Application Password
+  name: APPLICATION_PASSWORD
+  required: true
+  value: secret
+- description: Environment under which the sample application will run. Could be set to production, development or test.
+  displayName: Rails Environment
+  name: RAILS_ENV
+  required: true
+  value: production
+- displayName: Database Service Name
+  name: DATABASE_SERVICE_NAME
+  required: true
+  value: postgresql
+- displayName: Database Username
+  from: user[A-Z0-9]{3}
+  generate: expression
+  name: DATABASE_USER
+- displayName: Database Password
+  from: '[a-zA-Z0-9]{8}'
+  generate: expression
+  name: DATABASE_PASSWORD
+- displayName: Database Name
+  name: DATABASE_NAME
+  required: true
+  value: root
+- displayName: Maximum Database Connections
+  name: POSTGRESQL_MAX_CONNECTIONS
+  value: "100"
+- displayName: Shared Buffer Amount
+  name: POSTGRESQL_SHARED_BUFFERS
+  value: 12MB
+- description: The custom RubyGems mirror URL
+  displayName: Custom RubyGems Mirror URL
+  name: RUBYGEM_MIRROR

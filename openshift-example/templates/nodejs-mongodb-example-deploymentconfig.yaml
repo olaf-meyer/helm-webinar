@@ -1,0 +1,77 @@
+{{ if .Values.nodejs.enabled }}
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  annotations:
+    description: Defines how to deploy the application server
+    template.alpha.openshift.io/wait-for-ready: "true"
+    app.openshift.io/connects-to: >-
+      [{"apiVersion":"apps.openshift.io/v1","kind":"DeploymentConfig","name":"{{ include "nodejs.databaseServiceName" . }}"}]
+  labels:
+    app.openshift.io/runtime: nodejs
+    app.kubernetes.io/part-of: {{ .Values.nodejs.name }}
+    application: {{ .Values.nodejs.name}}
+  name: {{ .Values.nodejs.name }}
+spec:
+  replicas: 1
+  selector:
+    name: {{ .Values.nodejs.name }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        name: {{ .Values.nodejs.name }}
+        application: {{ .Values.nodejs.name}}
+      name: {{ .Values.nodejs.name }}
+    spec:
+      containers:
+      - env:
+        - name: DATABASE_SERVICE_NAME
+          value: {{ include "nodejs.databaseServiceName" . }}
+        - name: MONGODB_USER
+          valueFrom:
+            secretKeyRef:
+              key: database-user
+              name: {{ .Values.nodejs.name }}
+        - name: MONGODB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: database-password
+              name: {{ .Values.nodejs.name }}
+        - name: MONGODB_DATABASE
+          value: {{ .Values.nodejs.database.name}}
+        - name: MONGODB_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: database-admin_password
+              name: {{ .Values.nodejs.name }}
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 30
+          timeoutSeconds: 3
+        name: nodejs-mongodb-example
+        ports:
+        - containerPort: 8080
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 3
+          timeoutSeconds: 3
+        resources:
+          limits:
+            memory: {{ .Values.nodejs.memory_limit }}
+  triggers:
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - nodejs-mongodb-example
+      from:
+        kind: ImageStreamTag
+        name: {{ .Values.nodejs.name }}:latest
+    type: ImageChange
+  - type: ConfigChange
+{{ end }}

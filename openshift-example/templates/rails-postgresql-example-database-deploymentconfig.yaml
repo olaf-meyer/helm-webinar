@@ -1,0 +1,81 @@
+{{ if .Values.rails.enabled }}
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  annotations:
+    description: Defines how to deploy the database
+    template.alpha.openshift.io/wait-for-ready: "true"
+  labels:
+    app.kubernetes.io/name: postgresql
+    app.kubernetes.io/part-of: {{ .Values.rails.name }}
+    application: {{ .Values.rails.name}}
+  name: {{ include "rails.databaseServiceName" . }}
+spec:
+  replicas: 1
+  selector:
+    name: {{ include "rails.databaseServiceName" . }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        name: {{ include "rails.databaseServiceName" . }}
+        app.kubernetes.io/part-of: {{ .Values.rails.name }}
+        application: {{ .Values.rails.name}}
+      name: {{ include "rails.databaseServiceName" . }}
+    spec:
+      containers:
+      - env:
+        - name: POSTGRESQL_USER
+          valueFrom:
+            secretKeyRef:
+              key: database-user
+              name: {{ .Values.rails.name }}
+        - name: POSTGRESQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: database-password
+              name: {{ .Values.rails.name }}
+        - name: POSTGRESQL_DATABASE
+          value: {{ .Values.rails.database.name}}
+        - name: POSTGRESQL_MAX_CONNECTIONS
+          value: "{{ .Values.rails.database.postgresql_max_connections}}"
+        - name: POSTGRESQL_SHARED_BUFFERS
+          value: {{ .Values.rails.database.postgresql_shared_buffers}}
+        livenessProbe:
+          exec:
+            command:
+            - /usr/libexec/check-container
+            - --live
+          initialDelaySeconds: 120
+          timeoutSeconds: 10
+        name: postgresql
+        ports:
+        - containerPort: 5432
+        readinessProbe:
+          exec:
+            command:
+            - /usr/libexec/check-container
+          initialDelaySeconds: 5
+          timeoutSeconds: 1
+        resources:
+          limits:
+            memory: {{ .Values.rails.database.postgresql_memory_limit}}
+        volumeMounts:
+        - mountPath: /var/lib/pgsql/data
+          name: data
+      volumes:
+      - emptyDir: {}
+        name: data
+  triggers:
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - postgresql
+      from:
+        kind: ImageStreamTag
+        name: postgresql:12-el8
+        namespace: {{ .Values.rails.source_namespace }}
+    type: ImageChange
+  - type: ConfigChange
+{{ end }}

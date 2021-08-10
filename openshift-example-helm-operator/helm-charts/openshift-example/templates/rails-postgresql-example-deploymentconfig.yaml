@@ -1,0 +1,103 @@
+{{ if .Values.rails.enabled }}
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  annotations:
+    description: Defines how to deploy the application server
+    template.alpha.openshift.io/wait-for-ready: "true"
+    app.openshift.io/connects-to: >-
+      [{"apiVersion":"apps.openshift.io/v1","kind":"DeploymentConfig","name":"{{ include "rails.databaseServiceName" . }}"}]
+  labels:
+    app.openshift.io/runtime: rails
+    app.kubernetes.io/part-of: {{ .Values.rails.name }}
+    application: {{ .Values.rails.name}}
+  name: {{ .Values.rails.name }}
+spec:
+  replicas: 1
+  selector:
+    name: {{ .Values.rails.name }}
+  strategy:
+    recreateParams:
+      pre:
+        execNewPod:
+          command:
+          - ./migrate-database.sh
+          containerName: {{ .Values.rails.name }}
+        failurePolicy: Abort
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        name: {{ .Values.rails.name }}
+        app.kubernetes.io/part-of: {{ .Values.rails.name }}
+        application: {{ .Values.rails.name}}
+      name: {{ .Values.rails.name }}
+    spec:
+      containers:
+      - env:
+        - name: DATABASE_SERVICE_NAME
+          value: {{ include "rails.databaseServiceName" . }}
+        - name: POSTGRESQL_USER
+          valueFrom:
+            secretKeyRef:
+              key: database-user
+              name: {{ .Values.rails.name }}
+        - name: POSTGRESQL_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: database-password
+              name: {{ .Values.rails.name }}
+        - name: POSTGRESQL_DATABASE
+          value: {{ .Values.rails.database.name}}
+        - name: SECRET_KEY_BASE
+          valueFrom:
+            secretKeyRef:
+              key: keybase
+              name: {{ .Values.rails.name }}
+        - name: POSTGRESQL_MAX_CONNECTIONS
+          value: "{{ .Values.rails.database.postgresql_max_connections}}"
+        - name: POSTGRESQL_SHARED_BUFFERS
+          value: {{ .Values.rails.database.postgresql_shared_buffers}}
+        - name: APPLICATION_DOMAIN
+          value: {{ .Values.rails.application_domain }}
+        - name: APPLICATION_USER
+          valueFrom:
+            secretKeyRef:
+              key: application_user
+              name: {{ .Values.rails.name }}
+        - name: APPLICATION_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: application_password
+              name: {{ .Values.rails.name }}
+        - name: RAILS_ENV
+          value: {{ .Values.rails.rails_env}}
+        livenessProbe:
+          httpGet:
+            path: /articles
+            port: 8080
+          initialDelaySeconds: 10
+          timeoutSeconds: 3
+        name: {{ .Values.rails.name }}
+        ports:
+        - containerPort: 8080
+        readinessProbe:
+          httpGet:
+            path: /articles
+            port: 8080
+          initialDelaySeconds: 5
+          timeoutSeconds: 3
+        resources:
+          limits:
+            memory: {{ .Values.rails.memory_limit }}
+  triggers:
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - {{ .Values.rails.name }}
+      from:
+        kind: ImageStreamTag
+        name: {{ .Values.rails.name }}:latest
+    type: ImageChange
+  - type: ConfigChange
+{{ end }}

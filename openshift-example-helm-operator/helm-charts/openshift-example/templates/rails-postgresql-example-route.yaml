@@ -1,0 +1,14 @@
+{{ if .Values.rails.enabled }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ .Values.rails.name }}
+  labels:
+    app.kubernetes.io/part-of: {{ .Values.rails.name }}
+    application: {{ .Values.rails.name}}
+spec:
+  host: {{ .Values.rails.application_domain }}
+  to:
+    kind: Service
+    name: {{ .Values.rails.name }}
+{{ end }}

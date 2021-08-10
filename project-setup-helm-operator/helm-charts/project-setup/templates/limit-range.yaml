@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: {{ include "project-setup.name" . }}-limits
+  namespace: {{ include "project-setup.name" . }}
+spec:
+  limits:
+  - default:
+      cpu: {{ .Values.limit.default.cpu }}
+      memory: {{ .Values.limit.default.memory }}
+    defaultRequest:
+      cpu: {{ .Values.limit.defaultRequest.cpu }}
+      memory: {{ .Values.limit.defaultRequest.memory }}
+    max:
+      cpu: {{ .Values.limit.max.cpu }}
+      memory: {{ .Values.limit.max.memory }}
+    maxLimitRequestRatio:
+      cpu: {{ .Values.limit.maxLimitRequestRatio.cpu }}
+      memory: {{ .Values.limit.maxLimitRequestRatio.memory }}
+    min:
+      cpu: {{ .Values.limit.min.cpu }}
+      memory: {{ .Values.limit.min.memory }}
+    type: Container

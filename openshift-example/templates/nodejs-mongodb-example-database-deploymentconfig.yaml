@@ -1,0 +1,83 @@
+{{ if .Values.nodejs.enabled }}
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  annotations:
+    description: Defines how to deploy the database
+    template.alpha.openshift.io/wait-for-ready: "true"
+  labels:
+    app.kubernetes.io/name: mongodb
+    app.kubernetes.io/part-of: {{ .Values.nodejs.name }}
+    application: {{ .Values.nodejs.name}}
+  name: {{ include "nodejs.databaseServiceName" . }}
+spec:
+  replicas: 1
+  selector:
+    name: {{ include "nodejs.databaseServiceName" . }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        name: {{ include "nodejs.databaseServiceName" . }}
+        application: {{ .Values.nodejs.name}}
+      name: {{ include "nodejs.databaseServiceName" . }}
+    spec:
+      containers:
+      - env:
+        - name: MONGODB_USER
+          valueFrom:
+            secretKeyRef:
+              key: database-user
+              name: {{ .Values.nodejs.name }}
+        - name: MONGODB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: database-password
+              name: {{ .Values.nodejs.name }}
+        - name: MONGODB_DATABASE
+          value: {{ .Values.nodejs.database.name}}
+        - name: MONGODB_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: database-admin_password
+              name: {{ .Values.nodejs.name }}
+        livenessProbe:
+          initialDelaySeconds: 30
+          tcpSocket:
+            port: 27017
+          timeoutSeconds: 1
+        name: mongodb
+        ports:
+        - containerPort: 27017
+        readinessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -i
+            - -c
+            - mongo 127.0.0.1:27017/$MONGODB_DATABASE -u $MONGODB_USER -p $MONGODB_PASSWORD --eval="quit()"
+          initialDelaySeconds: 3
+          timeoutSeconds: 1
+        resources:
+          limits:
+            memory: {{ .Values.nodejs.database.mongodb_memory_limit}}
+        volumeMounts:
+        - mountPath: /var/lib/mongodb/data
+          name: {{ include "nodejs.databaseServiceName" . }}-data
+      volumes:
+      - emptyDir:
+          medium: ""
+        name: {{ include "nodejs.databaseServiceName" . }}-data
+  triggers:
+  - imageChangeParams:
+      automatic: true
+      containerNames:
+      - mongodb
+      from:
+        kind: ImageStreamTag
+        name: mongodb:{{ .Values.nodejs.database.mongodb_version}}
+        namespace: {{ .Values.nodejs.namespace }}
+    type: ImageChange
+  - type: ConfigChange
+{{ end }}

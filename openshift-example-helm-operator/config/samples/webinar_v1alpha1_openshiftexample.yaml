@@ -1,0 +1,15 @@
+apiVersion: webinar.consol.de/v1alpha1
+kind: OpenshiftExample
+metadata:
+  name: openshiftexample-sample
+spec:
+  # Default values copied from <project_dir>/helm-charts/openshift-example/values.yaml
+  java:
+    enabled: true 
+    name: openjdk-app
+  nodejs:
+    enabled: false
+    name: nodejs-mongodb-example
+  rails:
+    enabled: false
+    name: rails-postgresql-example
